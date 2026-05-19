@@ -507,17 +507,8 @@ function isSim(a,b){
   if(!a||!b)return false;
   const na=normKo(a.trim());
   const nb=normKo(b.trim());
-  // 정규화 후 완전 동일 → 무조건 유사
-  if(na===nb)return true;
-  const dist=lev(na,nb);
-  const lenA=na.length, lenB=nb.length;
-  // 길이 기반 허용 기준
-  // 2~3글자: 1글자 차이까지만 경고
-  // 4글자 이상: 허용 (너무 빡빡하지 않게)
-  if(lenA<=3||lenB<=3){
-    return dist<=1&&Math.abs(lenA-lenB)<=1;
-  }
-  return false;
+  // 정규화 후 완전 동일할 때만 유사 처리
+  return na===nb;
 }
 
 function doCheck(){
