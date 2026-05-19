@@ -356,6 +356,7 @@ async function loadRequests(){
         <div class="req-actions">
           <button class="btn-approve" onclick="approveReq(${r.rowIndex},'${r.nickname}')">✓ 최종 확정</button>
           <button class="btn-reject" onclick="rejectReq(${r.rowIndex})">✕ 반려</button>
+          <button class="btn-del" onclick="deleteReq(${r.rowIndex})">🗑 삭제</button>
         </div>
       </div>
     `).join('');
@@ -382,6 +383,18 @@ async function rejectReq(rowIndex){
     el.style.opacity='0.4';
     el.style.pointerEvents='none';
     el.querySelector('.req-actions').innerHTML='<span style="font-size:12px;color:#FFB3AA;font-weight:600;">✕ 반려됨</span>';
+    setTimeout(()=>loadRequests(),1200);
+  }catch(e){alert('오류가 발생했어요.');}
+}
+
+async function deleteReq(rowIndex){
+  if(!confirm('이 요청을 삭제할까요?'))return;
+  try{
+    await jsonp(`${API}?action=deleteRequest&rowIndex=${rowIndex}`);
+    const el=document.getElementById('req-'+rowIndex);
+    el.style.opacity='0.4';
+    el.style.pointerEvents='none';
+    el.querySelector('.req-actions').innerHTML='<span style="font-size:12px;color:rgba(255,255,255,.3);font-weight:600;">🗑 삭제됨</span>';
     setTimeout(()=>loadRequests(),1200);
   }catch(e){alert('오류가 발생했어요.');}
 }
