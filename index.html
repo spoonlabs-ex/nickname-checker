@@ -214,15 +214,17 @@ input:focus{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.1);}
       <!-- 확정 요청 폼 (사용 가능일 때만 노출) -->
       <div id="requestForm" class="request-form" style="display:none;">
         <div class="request-form-title">📝 채용 담당자에게 확인 요청하기</div>
-        <div class="row2" style="margin-bottom:10px;">
-          <div>
-            <label class="fl">이름 (실명)</label>
-            <input type="text" id="reqName" placeholder="예: 홍길동"/>
-          </div>
-          <div>
-            <label class="fl">한국어 발음 확인</label>
-            <input type="text" id="reqPronun" placeholder="예: 루시"/>
-          </div>
+        <div style="margin-bottom:10px;">
+          <label class="fl">1. 이름 (실명)</label>
+          <input type="text" id="reqName" placeholder="예: 홍길동"/>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label class="fl">2. 영어 닉네임</label>
+          <input type="text" id="reqNick" placeholder="예: Lucy" readonly style="opacity:.6;cursor:default;"/>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label class="fl">3. 한국어 발음</label>
+          <input type="text" id="reqPronun" placeholder="예: 루시"/>
         </div>
         <button class="btn-request" onclick="submitRequest()">확인 요청하기 →</button>
         <p class="smsg" id="reqMsg"></p>
@@ -404,7 +406,7 @@ async function delP(nick){
 
 async function submitRequest(){
   const name=document.getElementById('reqName').value.trim();
-  const nick=document.getElementById('nickInput').value.trim();
+  const nick=document.getElementById('reqNick').value.trim();
   const pronun=document.getElementById('reqPronun').value.trim();
   const m=document.getElementById('reqMsg');
   if(!name){m.className='smsg err';m.style.display='block';m.textContent='이름을 입력해주세요.';return;}
@@ -513,6 +515,7 @@ function doCheck(){
 
   // 사용 가능 + 발음 확인까지 통과했을 때만 요청 폼 노출
   if(canRequest && pr){
+    document.getElementById('reqNick').value=nick;
     document.getElementById('reqPronun').value=pr;
     document.getElementById('reqMsg').style.display='none';
     rf.style.display='block';
