@@ -456,6 +456,26 @@ function clearR(){
   document.getElementById('requestForm').style.display='none';
 }
 
+function normKo(s){
+  if(!s)return '';
+  return s.trim()
+    // 된소리 → 예사소리
+    .replace(/씨/g,'시').replace(/쌔/g,'새').replace(/째/g,'재').replace(/쩨/g,'제')
+    .replace(/쪼/g,'조').replace(/쭤/g,'줘').replace(/찌/g,'지').replace(/쎄/g,'세')
+    .replace(/뻬/g,'베').replace(/빼/g,'배').replace(/뽀/g,'보').replace(/뿌/g,'부')
+    .replace(/떼/g,'데').replace(/따/g,'다').replace(/또/g,'도').replace(/뚜/g,'두')
+    .replace(/까/g,'가').replace(/께/g,'게').replace(/꼬/g,'고').replace(/꾸/g,'구')
+    // 모음 유사음
+    .replace(/애/g,'에').replace(/얘/g,'예')
+    .replace(/워/g,'와').replace(/위/g,'의')
+    .replace(/외/g,'왜').replace(/웨/g,'왜')
+    // 자음 유사음
+    .replace(/래/g,'레').replace(/라이/g,'라이')
+    .replace(/리이/g,'리').replace(/이이/g,'이')
+    // 장단음 무시 (중복 모음)
+    .replace(/(.)\1+/g,'$1');
+}
+
 function lev(a,b){
   const dp=Array.from({length:a.length+1},(_,i)=>[i]);
   for(let j=0;j<=b.length;j++)dp[0][j]=j;
@@ -466,9 +486,18 @@ function lev(a,b){
 
 function isSim(a,b){
   if(!a||!b)return false;
-  const na=a.trim(),nb=b.trim();
+  const na=normKo(a.trim());
+  const nb=normKo(b.trim());
+  // 정규화 후 완전 동일 → 무조건 유사
   if(na===nb)return true;
-  if(lev(na,nb)<=1&&Math.abs(na.length-nb.length)<=1)return true;
+  const dist=lev(na,nb);
+  const lenA=na.length, lenB=nb.length;
+  // 길이 기반 허용 기준
+  // 2~3글자: 1글자 차이까지만 경고
+  // 4글자 이상: 허용 (너무 빡빡하지 않게)
+  if(lenA<=3||lenB<=3){
+    return dist<=1&&Math.abs(lenA-lenB)<=1;
+  }
   return false;
 }
 
