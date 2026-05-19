@@ -507,7 +507,9 @@ function isSim(a,b){
   if(!a||!b)return false;
   const na=normKo(a.trim());
   const nb=normKo(b.trim());
-  // 정규화 후 완전 동일할 때만 유사 처리
+  // 첫 글자 다르면 무조건 통과
+  if(na[0]!==nb[0])return false;
+  // 정규화 후 완전 동일할 때만 경고
   return na===nb;
 }
 
