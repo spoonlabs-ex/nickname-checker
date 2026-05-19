@@ -459,20 +459,39 @@ function clearR(){
 function normKo(s){
   if(!s)return '';
   return s.trim()
+    // 이중모음/연음 → 단순화
+    .replace(/죠/g,'조').replace(/쥬/g,'주').replace(/쥐/g,'주')
+    .replace(/챠/g,'차').replace(/쳐/g,'처').replace(/쵸/g,'초').replace(/츄/g,'추')
+    .replace(/샤/g,'사').replace(/셔/g,'서').replace(/쇼/g,'소').replace(/슈/g,'수')
+    .replace(/냐/g,'나').replace(/녀/g,'너').replace(/뇨/g,'노').replace(/뉴/g,'누')
+    .replace(/랴/g,'라').replace(/려/g,'러').replace(/료/g,'로').replace(/류/g,'루')
+    .replace(/먀/g,'마').replace(/며/g,'머').replace(/묘/g,'모').replace(/뮤/g,'무')
+    .replace(/뱌/g,'바').replace(/벼/g,'버').replace(/뵤/g,'보').replace(/뷰/g,'부')
+    .replace(/펴/g,'퍼').replace(/표/g,'포').replace(/퓨/g,'푸')
+    .replace(/혀/g,'허').replace(/효/g,'호').replace(/휴/g,'후')
+    // 아/야 끝 통일 (소피아↔소피야, 줄리아↔줄리야)
+    .replace(/야$/,'아')
+    // 아냐 ↔ 안야 통일
+    .replace(/아냐/g,'안야')
     // 된소리 → 예사소리
     .replace(/씨/g,'시').replace(/쌔/g,'새').replace(/째/g,'재').replace(/쩨/g,'제')
     .replace(/쪼/g,'조').replace(/쭤/g,'줘').replace(/찌/g,'지').replace(/쎄/g,'세')
     .replace(/뻬/g,'베').replace(/빼/g,'배').replace(/뽀/g,'보').replace(/뿌/g,'부')
     .replace(/떼/g,'데').replace(/따/g,'다').replace(/또/g,'도').replace(/뚜/g,'두')
     .replace(/까/g,'가').replace(/께/g,'게').replace(/꼬/g,'고').replace(/꾸/g,'구')
+    .replace(/짜/g,'자').replace(/쩌/g,'저').replace(/쭈/g,'주')
     // 모음 유사음
     .replace(/애/g,'에').replace(/얘/g,'예')
     .replace(/워/g,'와').replace(/위/g,'의')
     .replace(/외/g,'왜').replace(/웨/g,'왜')
-    // 자음 유사음
-    .replace(/래/g,'레').replace(/라이/g,'라이')
-    .replace(/리이/g,'리').replace(/이이/g,'이')
-    // 장단음 무시 (중복 모음)
+    .replace(/의/g,'이')
+    // ㅐ/ㅔ 혼용
+    .replace(/내/g,'네').replace(/배/g,'베').replace(/새/g,'세')
+    .replace(/재/g,'제').replace(/태/g,'테').replace(/래/g,'레')
+    .replace(/매/g,'메').replace(/해/g,'헤').replace(/개/g,'게')
+    // 끝 받침 무시 (나오미↔나오밀, 조엘↔조엘르)
+    .replace(/[ㄱ-ㅎ]$/,'')
+    // 중복 제거
     .replace(/(.)\1+/g,'$1');
 }
 
@@ -522,7 +541,11 @@ function doCheck(){
       const sim=[];
       Object.entries(PM).forEach(([en,ep])=>{
         if(en.toLowerCase()===norm)return;
-        if(isSim(pr,ep)){sim.push({nick:en,pr:ep,isA:AL.includes(en.toLowerCase()),isR:RL.includes(en.toLowerCase())});}
+        // 재직자 또는 6개월 이내 퇴직자 발음만 비교
+        const isA=AL.includes(en.toLowerCase());
+        const isR=RL.includes(en.toLowerCase());
+        if(!isA&&!isR)return; // 해당 없으면 스킵
+        if(isSim(pr,ep)){sim.push({nick:en,pr:ep,isA,isR});}
       });
       if(sim.length>0){
         const items=sim.map(s=>{
