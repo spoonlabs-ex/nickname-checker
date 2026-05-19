@@ -436,15 +436,27 @@ input:focus{
 const API="https://script.google.com/macros/s/AKfycbx6F72e_JIfdMixIuiIcFfHTUvYbcg8k5SN-ts4k_MMdU6tcHqg6yLhXLtBHbo55v8Y0A/exec";
 let AL=[],RL=[],PM={};
 
+// JSONP 호출 (CORS 우회)
+function jsonp(url){
+  return new Promise((resolve,reject)=>{
+    const cb='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const s=document.createElement('script');
+    window[cb]=(data)=>{ resolve(data); delete window[cb]; s.remove(); };
+    s.onerror=()=>{ reject(new Error('JSONP error')); delete window[cb]; s.remove(); };
+    s.src=url+(url.includes('?')?'&':'?')+'callback='+cb;
+    document.head.appendChild(s);
+  });
+}
+
 async function loadData(){
   try{
-    const d=await(await fetch(API+'?v='+Date.now())).json();
+    const d=await jsonp(API+'?v='+Date.now());
     AL=(d.active||[]).map(n=>n.toLowerCase().trim()).filter(Boolean);
     RL=(d.resigned||[]).map(n=>n.toLowerCase().trim()).filter(Boolean);
     if(d.sheetName){document.getElementById('sheetName').textContent=d.sheetName;document.getElementById('sinfo').style.display='block';}
-  }catch(e){}
+  }catch(e){console.error('loadData error',e);}
   try{
-    const p=await(await fetch(API+'?action=getPronunciations&v='+Date.now())).json();
+    const p=await jsonp(API+'?action=getPronunciations&v='+Date.now());
     PM={};(p||[]).forEach(x=>{PM[x.nickname.toLowerCase()]=x.pronunciation;});
   }catch(e){}
   document.getElementById('loadingState').style.display='none';
@@ -453,7 +465,7 @@ async function loadData(){
 async function loadPronuns(){
   document.getElementById('pronunList').innerHTML='<p style="font-size:13px;color:rgba(255,255,255,.25);">불러오는 중...</p>';
   try{
-    const p=await(await fetch(API+'?action=getPronunciations&v='+Date.now())).json();
+    const p=await jsonp(API+'?action=getPronunciations&v='+Date.now());
     PM={};(p||[]).forEach(x=>{PM[x.nickname.toLowerCase()]=x.pronunciation;});
     const el=document.getElementById('pronunList');
     if(!p||!p.length){el.innerHTML='<p style="font-size:13px;color:rgba(255,255,255,.25);">아직 등록된 발음이 없어요.</p>';return;}
@@ -467,7 +479,7 @@ async function savePronun(){
   const m=document.getElementById('saveMsg');
   if(!n||!pr){m.className='smsg err';m.style.display='block';m.textContent='닉네임과 발음을 모두 입력해주세요.';return;}
   try{
-    await fetch(`${API}?action=savePronunciation&nickname=${encodeURIComponent(n)}&pronunciation=${encodeURIComponent(pr)}`);
+    await jsonp(`${API}?action=savePronunciation&nickname=${encodeURIComponent(n)}&pronunciation=${encodeURIComponent(pr)}`);
     m.className='smsg ok';m.style.display='block';m.textContent='저장됐어요! 🎉';
     document.getElementById('adminNick').value='';document.getElementById('adminPronun').value='';
     setTimeout(()=>{m.style.display='none';},2000);loadPronuns();
@@ -475,15 +487,8 @@ async function savePronun(){
 }
 
 async function delP(nick){
-  await fetch(`${API}?action=deletePronunciation&nickname=${encodeURIComponent(nick)}`);
+  await jsonp(`${API}?action=deletePronunciation&nickname=${encodeURIComponent(nick)}`);
   loadPronuns();
-}
-
-function switchTab(tab,btn){
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
-  document.querySelectorAll('.body').forEach(c=>c.classList.remove('on'));
-  btn.classList.add('on');
-  document.getElementById('tab-'+tab).classList.add('on');
 }
 
 async function checkPw(){
@@ -491,13 +496,13 @@ async function checkPw(){
   const errEl=document.getElementById('pwError');
   errEl.style.display='none';
   try{
-    const res=await fetch(`${API}?action=verifyAdmin&pw=${encodeURIComponent(pw)}&v=${Date.now()}`);
-    const d=await res.json();
+    const d=await jsonp(`${API}?action=verifyAdmin&pw=${encodeURIComponent(pw)}&v=${Date.now()}`);
     if(d.ok){
       document.getElementById('adminLock').style.display='none';
       document.getElementById('adminPanel').style.display='block';
       loadPronuns();
     }else{
+      errEl.textContent='비밀번호가 틀렸습니다.';
       errEl.style.display='block';
     }
   }catch(e){
