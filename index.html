@@ -208,7 +208,7 @@ input:focus{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.1);}
           <input type="text" id="pronunInput" placeholder="예: 루시" oninput="clearR()" onkeydown="if(event.key==='Enter')doCheck()"/>
         </div>
       </div>
-      <button class="btn-main" onclick="doCheck()">중복 확인하기 →</button>
+      <button id="checkBtn" class="btn-main" onclick="doCheck()">중복 확인하기 →</button>
       <div id="checkResult" class="results" style="display:none;"></div>
 
       <!-- 확정 요청 폼 (사용 가능일 때만 노출) -->
@@ -310,19 +310,40 @@ function jsonp(url){
 }
 
 async function loadData(){
+  // 로딩 중 입력/버튼 비활성화
+  document.getElementById('nickInput').disabled=true;
+  document.getElementById('pronunInput').disabled=true;
+  document.getElementById('checkBtn').disabled=true;
+  document.getElementById('checkBtn').style.opacity='0.4';
+  document.getElementById('loadingState').innerHTML='<div class="spin"></div><span>데이터를 불러오고 있습니다. 조금만 기다려주세요!</span>';
+
   try{
-    const d=await jsonp(API+'?v='+Date.now());
+    // 닉네임 + 발음 동시에 불러오기 (속도 개선)
+    const [d, p] = await Promise.all([
+      Promise.race([
+        jsonp(API+'?v='+Date.now()),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),10000))
+      ]),
+      jsonp(API+'?action=getPronunciations&v='+Date.now()).catch(()=>null)
+    ]);
     AL=(d.active||[]).map(n=>n.toLowerCase().trim()).filter(Boolean);
     RL=(d.resigned||[]).map(n=>n.toLowerCase().trim()).filter(Boolean);
     PL=(d.pending||[]).map(n=>n.toLowerCase().trim()).filter(Boolean);
     APL=(d.approved||[]).map(n=>n.toLowerCase().trim()).filter(Boolean);
     if(d.sheetName){document.getElementById('sheetName').textContent=d.sheetName;document.getElementById('sinfo').style.display='block';}
-  }catch(e){}
-  try{
-    const p=await jsonp(API+'?action=getPronunciations&v='+Date.now());
-    PM={};(p||[]).forEach(x=>{PM[x.nickname.toLowerCase()]=x.pronunciation;});
-  }catch(e){}
+    PM={};((p)||[]).forEach(x=>{PM[x.nickname.toLowerCase()]=x.pronunciation;});
+  }catch(e){
+    document.getElementById('loadingState').innerHTML='<span style="color:#FFB3AA;font-size:13px;">데이터 로드 실패. 새로고침 해주세요.</span>';
+    return;
+  }
+
+  // 로딩 완료 후 활성화
   document.getElementById('loadingState').style.display='none';
+  document.getElementById('nickInput').disabled=false;
+  document.getElementById('pronunInput').disabled=false;
+  document.getElementById('checkBtn').disabled=false;
+  document.getElementById('checkBtn').style.opacity='1';
+  document.getElementById('nickInput').focus();
 }
 
 async function loadPronuns(){
