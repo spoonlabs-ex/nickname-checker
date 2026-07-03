@@ -298,6 +298,73 @@ input:focus{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.1);}
 const API="https://script.google.com/a/macros/spoonlabs.com/s/AKfycbwOLjscARBjgikIIkWnODNtiK8ioS12xlIWAksSa121XzYrr3DrobJQOxHSp7es9LTbuQ/exec";
 let AL=[],RL=[],PL=[],APL=[],PM={};
 
+// 슬랙 버튼 클릭 시 토큰 처리
+async function handleTokenAction(){
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const action = params.get('action');
+  if (!token || !action) return false;
+
+  // 페이지 전체를 처리 화면으로 전환
+  document.querySelector('.page').innerHTML = `
+    <div style="text-align:center;padding:80px 20px;">
+      <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;color:#fff;margin-bottom:16px;">
+        ${action==='approve' ? '✅ 닉네임 확정 처리 중...' : '✕ 반려 처리 중...'}
+      </div>
+      <p style="font-size:14px;color:rgba(255,255,255,.5);">잠시만 기다려주세요.</p>
+    </div>
+  `;
+
+  try {
+    // 토큰 검증
+    const verified = await jsonp(`${API}?action=verifyToken&token=${encodeURIComponent(token)}`);
+    if (!verified.ok) {
+      document.querySelector('.page').innerHTML = `
+        <div style="text-align:center;padding:80px 20px;">
+          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;color:#FFB3AA;margin-bottom:16px;">⚠️ 이미 처리된 요청이에요</div>
+          <p style="font-size:14px;color:rgba(255,255,255,.5);">이미 확정 또는 반려된 요청이거나 유효하지 않은 링크예요.</p>
+          <a href="${window.location.pathname}" style="display:inline-block;margin-top:24px;padding:12px 24px;background:rgba(255,255,255,.1);border-radius:10px;color:#fff;font-size:14px;text-decoration:none;">← 닉네임 체크 툴로 돌아가기</a>
+        </div>
+      `;
+      return true;
+    }
+
+    const { name, nickname, pronunciation, rowIndex } = verified;
+    const apiAction = action === 'approve' ? 'approveByToken' : 'rejectByToken';
+    const result = await jsonp(`${API}?action=${apiAction}&token=${encodeURIComponent(token)}`);
+
+    if (result.success) {
+      document.querySelector('.page').innerHTML = `
+        <div style="text-align:center;padding:80px 20px;">
+          <div style="font-size:3rem;margin-bottom:20px;">${action==='approve' ? '🎉' : '✕'}</div>
+          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;color:${action==='approve'?'#7EEFC0':'#FFB3AA'};margin-bottom:16px;">
+            ${action==='approve' ? '닉네임 확정 완료!' : '반려 완료'}
+          </div>
+          ${action==='approve' ? `
+            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:20px;margin:0 auto 24px;max-width:300px;">
+              <p style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:8px;">확정된 닉네임</p>
+              <p style="font-size:20px;font-weight:700;color:#fff;">${nickname} <span style="font-size:14px;color:rgba(255,255,255,.5);">(${pronunciation})</span></p>
+              <p style="font-size:13px;color:rgba(255,255,255,.4);margin-top:8px;">${name}님</p>
+            </div>
+          ` : `<p style="font-size:14px;color:rgba(255,255,255,.5);margin-bottom:24px;">${name}님의 <strong style="color:#fff;">${nickname}</strong> 요청이 반려됐어요.</p>`}
+          <a href="${window.location.pathname}" style="display:inline-block;padding:12px 24px;background:rgba(255,255,255,.1);border-radius:10px;color:#fff;font-size:14px;text-decoration:none;">← 닉네임 체크 툴로 돌아가기</a>
+        </div>
+      `;
+    } else {
+      throw new Error(result.error || '처리 실패');
+    }
+  } catch(e) {
+    document.querySelector('.page').innerHTML = `
+      <div style="text-align:center;padding:80px 20px;">
+        <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;color:#FFB3AA;margin-bottom:16px;">⚠️ 오류 발생</div>
+        <p style="font-size:14px;color:rgba(255,255,255,.5);margin-bottom:24px;">${e.message || '다시 시도해주세요.'}</p>
+        <a href="${window.location.pathname}" style="display:inline-block;padding:12px 24px;background:rgba(255,255,255,.1);border-radius:10px;color:#fff;font-size:14px;text-decoration:none;">← 닉네임 체크 툴로 돌아가기</a>
+      </div>
+    `;
+  }
+  return true;
+}
+
 function jsonp(url){
   return new Promise((resolve,reject)=>{
     const cb='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
@@ -615,7 +682,11 @@ function box(cls,title,desc){
   return `<div class="rbox ${cls}"><div class="rtitle">${title}</div><div class="rdesc">${desc}</div></div>`;
 }
 
-loadData();
+// 토큰 있으면 처리, 없으면 일반 로드
+(async()=>{
+  const handled = await handleTokenAction();
+  if(!handled) loadData();
+})();
 </script>
 </body>
 </html>
