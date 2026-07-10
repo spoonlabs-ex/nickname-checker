@@ -208,11 +208,11 @@ input:focus{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.1);}
       </div>
       <div class="row2">
         <div>
-          <label class="fl">영어 닉네임</label>
+          <label class="fl" id="labelNick">영어 닉네임</label>
           <input type="text" id="nickInput" placeholder="예: Lucy" oninput="clearR()" onkeydown="if(event.key==='Enter')doCheck()"/>
         </div>
         <div>
-          <label class="fl">한국어 발음</label>
+          <label class="fl" id="labelPronun">한국어 발음</label>
           <input type="text" id="pronunInput" placeholder="예: 루시" oninput="clearR()" onkeydown="if(event.key==='Enter')doCheck()"/>
         </div>
       </div>
@@ -221,17 +221,17 @@ input:focus{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.1);}
 
       <!-- 확정 요청 폼 (사용 가능일 때만 노출) -->
       <div id="requestForm" class="request-form" style="display:none;">
-        <div class="request-form-title">📝 채용 담당자에게 확인 요청하기</div>
+        <div class="request-form-title" id="requestFormTitle">📝 채용 담당자에게 확인 요청하기</div>
         <div style="margin-bottom:10px;">
-          <label class="fl">1. 이름 (실명)</label>
+          <label class="fl" id="reqLabel1">1. 이름 (실명)</label>
           <input type="text" id="reqName" placeholder="예: 홍길동"/>
         </div>
         <div style="margin-bottom:10px;">
-          <label class="fl">2. 영어 닉네임</label>
+          <label class="fl" id="reqLabel2">2. 영어 닉네임</label>
           <input type="text" id="reqNick" placeholder="예: Lucy" readonly style="opacity:.6;cursor:default;"/>
         </div>
         <div style="margin-bottom:10px;">
-          <label class="fl">3. 한국어 발음</label>
+          <label class="fl" id="reqLabel3">3. 한국어 발음</label>
           <input type="text" id="reqPronun" placeholder="예: 루시"/>
         </div>
         <button class="btn-request" onclick="submitRequest()">확인 요청하기 →</button>
@@ -650,7 +650,7 @@ function doCheck(){
   }else{
     html+=box('ok',L.okTitle,L.okDesc(nick));
     canRequest=true;
-    if(pr){
+    if(pr && currentLang === 'ko'){
       const sim=[];
       Object.entries(PM).forEach(([en,ep])=>{
         if(en.toLowerCase()===norm)return;
@@ -669,6 +669,9 @@ function doCheck(){
       }else{
         html+=box('ok',L.okPronunTitle,L.okPronunDesc(pr));
       }
+    }else if(pr && currentLang === 'ja'){
+      // 일본어 버전은 발음 유사 체크 스킵 — 담당자가 직접 확인
+      html+=box('ok',L.okPronunTitle,L.okPronunDesc(pr));
     }else{
       html+=`<p class="hint-row">${L.hintRow}</p>`;
       canRequest=false;
@@ -765,7 +768,7 @@ const LANGS = {
     loading: 'データを読み込んでいます。少々お待ちください！',
     nickLabel: '英語ニックネーム',
     nickPlaceholder: '例: Lucy',
-    pronunLabel: 'カタカナ読み',
+    pronunLabel: '日本語発音（カタカナ）',
     pronunPlaceholder: '例: ルーシー',
     checkBtn: '重複確認する →',
     sheetSuffix: '基準 · リアルタイム連動',
@@ -843,25 +846,26 @@ function applyLang() {
   setTxt('tabAdmin', L.tabAdmin);
   setTxt('checkBtn', L.checkBtn);
 
+  // 라벨
+  setTxt('labelNick', L.nickLabel);
+  setTxt('labelPronun', L.pronunLabel);
+  setTxt('reqLabel1', L.reqLabel1);
+  setTxt('reqLabel2', L.reqLabel2);
+  setTxt('reqLabel3', L.reqLabel3);
+
+  // 플레이스홀더
   setVal('nickInput', L.nickPlaceholder);
   setVal('pronunInput', L.pronunPlaceholder);
   setVal('reqName', L.reqNamePlaceholder);
   setVal('reqNick', L.reqNickPlaceholder);
   setVal('reqPronun', L.reqPronunPlaceholder);
 
-  // labels
-  document.querySelectorAll('.fl').forEach((el, i) => {
-    if (el.previousElementSibling === null) return;
-  });
-
-  // request form title
-  const rft = document.querySelector('.request-form-title');
-  if (rft) rft.textContent = L.requestTitle;
-
+  // 요청 폼
+  setTxt('requestFormTitle', L.requestTitle);
   const reqBtn = document.querySelector('.btn-request');
   if (reqBtn) reqBtn.textContent = L.reqBtn;
 
-  set('adminTitle', L.adminTitle); // via admin-title
+  // 관리자
   const adminTitle = document.querySelector('.admin-title');
   if (adminTitle) adminTitle.innerHTML = L.adminTitle;
   const adminSub = document.querySelector('.admin-sub');
@@ -870,6 +874,12 @@ function applyLang() {
   if (adminPwBtn) adminPwBtn.textContent = L.adminPwBtn;
   const adminPwErr = document.getElementById('pwError');
   if (adminPwErr) adminPwErr.textContent = L.adminPwErr;
+
+  // 로딩 메시지 (로딩 중일 때만)
+  const loadingState = document.getElementById('loadingState');
+  if (loadingState && loadingState.style.display !== 'none') {
+    loadingState.innerHTML = '<div class="spin"></div><span>' + L.loading + '</span>';
+  }
 }
 
 // 초기 언어 감지 (URL 파라미터)
