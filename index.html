@@ -390,7 +390,7 @@ async function loadData(){
   document.getElementById('pronunInput').disabled=true;
   document.getElementById('checkBtn').disabled=true;
   document.getElementById('checkBtn').style.opacity='0.4';
-  document.getElementById('loadingState').innerHTML='<div class="spin"></div><span>데이터를 불러오고 있습니다. 조금만 기다려주세요!</span>';
+  document.getElementById('loadingState').innerHTML='<div class="spin"></div><span>'+LANGS[currentLang].loading+'</span>';
 
   try{
     // 닉네임 + 발음 동시에 불러오기 (속도 개선)
@@ -897,7 +897,7 @@ function initLang() {
 
 // 토큰 있으면 처리, 없으면 일반 로드
 (async()=>{
-  initLang();
+  initLang(); // 언어 먼저 적용
   const handled = await handleTokenAction();
   if(!handled) loadData();
 })();
