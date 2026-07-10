@@ -168,6 +168,10 @@ input:focus{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.1);}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+.lang-switcher{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:3px;margin-bottom:20px;}
+.lang-btn{padding:5px 14px;font-family:'Pretendard',sans-serif;font-size:12px;font-weight:600;color:rgba(255,255,255,.4);background:none;border:none;border-radius:16px;cursor:pointer;transition:all .2s;letter-spacing:.03em;}
+.lang-btn.on{color:#0a0812;background:#fff;}
 </style>
 </head>
 <body>
@@ -179,18 +183,22 @@ input:focus{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.1);}
     <div class="eyebrow">
       <div class="eyebrow-line"></div>SpoonLabs<div class="eyebrow-line r"></div>
     </div>
-    <h1>스푼랩스에서의 새로운 여정을<br>시작할 닉네임을 입력해주세요.</h1>
-    <p class="desc">닉네임은 사내에서 실제 이름처럼 불리며, 모든 계정의 ID가 됩니다.</p>
+    <div class="lang-switcher">
+      <button class="lang-btn on" onclick="setLang('ko',this)">한국어</button>
+      <button class="lang-btn" onclick="setLang('ja',this)">日本語</button>
+    </div>
+    <h1 id="mainTitle">스푼랩스에서의 새로운 여정을<br>시작할 닉네임을 입력해주세요.</h1>
+    <p class="desc" id="mainDesc">닉네임은 사내에서 실제 이름처럼 불리며, 모든 계정의 ID가 됩니다.</p>
     <div class="rules">
-      <span class="rule">💛 수평적인 문화를 위해 본명 대신 영어 닉네임을 사용해요.</span>
-      <span class="rule">🤝 이미 사용 중인 닉네임은 사용할 수 없어요. 나만의 닉네임을 찾아보세요!</span>
+      <span class="rule" id="rule1">💛 수평적인 문화를 위해 본명 대신 영어 닉네임을 사용해요.</span>
+      <span class="rule" id="rule2">🤝 이미 사용 중인 닉네임은 사용할 수 없어요. 나만의 닉네임을 찾아보세요!</span>
     </div>
   </header>
 
   <div class="card">
     <div class="tabs">
-      <button class="tab on" onclick="switchTab('check',this)">닉네임 중복 확인</button>
-      <button class="tab" onclick="switchTab('admin',this)">관리자</button>
+      <button class="tab on" id="tabCheck" onclick="switchTab('check',this)">닉네임 중복 확인</button>
+      <button class="tab" id="tabAdmin" onclick="switchTab('admin',this)">관리자</button>
     </div>
 
     <!-- 닉네임 체크 탭 -->
@@ -507,22 +515,25 @@ async function delP(nick){
   loadPronuns();
 }
 
+
 async function submitRequest(){
+  const L = LANGS[currentLang];
   const name=document.getElementById('reqName').value.trim();
   const nick=document.getElementById('reqNick').value.trim();
   const pronun=document.getElementById('reqPronun').value.trim();
   const m=document.getElementById('reqMsg');
-  if(!name){m.className='smsg err';m.style.display='block';m.textContent='이름을 입력해주세요.';return;}
-  if(!pronun){m.className='smsg err';m.style.display='block';m.textContent='한국어 발음을 입력해주세요.';return;}
+  if(!name){m.className='smsg err';m.style.display='block';m.textContent=L.reqErrName;return;}
+  if(!pronun){m.className='smsg err';m.style.display='block';m.textContent=L.reqErrPronun;return;}
   try{
-    await jsonp(`${API}?action=submitRequest&name=${encodeURIComponent(name)}&nickname=${encodeURIComponent(nick)}&pronunciation=${encodeURIComponent(pronun)}`);
+    await jsonp(`${API}?action=submitRequest&name=${encodeURIComponent(name)}&nickname=${encodeURIComponent(nick)}&pronunciation=${encodeURIComponent(pronun)}&lang=${currentLang}`);
     m.className='smsg ok';m.style.display='block';
-    m.textContent='요청이 전송됐어요! 채용 담당자가 확인 후 연락드릴게요 🎉';
+    m.textContent=L.reqSuccess;
     document.getElementById('reqName').value='';
     document.getElementById('requestForm').style.pointerEvents='none';
     document.getElementById('requestForm').style.opacity='0.6';
   }catch(e){m.className='smsg err';m.style.display='block';m.textContent='전송 실패. 다시 시도해주세요.';}
 }
+
 
 function switchTab(tab,btn){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
@@ -616,7 +627,9 @@ function isSim(a,b){
   return na===nb;
 }
 
+
 function doCheck(){
+  const L = LANGS[currentLang];
   const nick=document.getElementById('nickInput').value.trim();
   const pr=document.getElementById('pronunInput').value.trim();
   const el=document.getElementById('checkResult');
@@ -627,45 +640,43 @@ function doCheck(){
   let canRequest=false;
 
   if(AL.includes(norm)){
-    html+=box('no','사용 불가 — 재직자 닉네임',`아쉽지만 <strong>${nick}</strong>은 이미 팀원이 사용 중인 닉네임이에요. 다른 닉네임을 찾아볼까요?`);
+    html+=box('no',L.noActiveTitle,L.noActiveDesc(nick));
   }else if(RL.includes(norm)){
-    html+=box('no','사용 불가 — 퇴사 6개월 이내',`<strong>${nick}</strong>은 최근 퇴사한 팀원의 닉네임이에요. 조금 더 기다리거나 다른 닉네임을 선택해주세요.`);
+    html+=box('no',L.noResignedTitle,L.noResignedDesc(nick));
   }else if(PL.includes(norm)){
-    html+=box('no','사용 불가 — 확인 요청 중',`<strong>${nick}</strong>은 다른 입사 예정자가 이미 요청한 닉네임이에요. 다른 닉네임을 찾아볼까요?`);
+    html+=box('no',L.noPendingTitle,L.noPendingDesc(nick));
   }else if(APL.includes(norm)){
-    html+=box('no','사용 불가 — 확정된 닉네임',`<strong>${nick}</strong>은 다른 입사 예정자가 이미 확정한 닉네임이에요. 다른 닉네임을 찾아볼까요?`);
+    html+=box('no',L.noApprovedTitle,L.noApprovedDesc(nick));
   }else{
-    html+=box('ok','사용 가능해요!',`좋아요! <strong>${nick}</strong>은 사용할 수 있는 닉네임이에요 🎉`);
+    html+=box('ok',L.okTitle,L.okDesc(nick));
     canRequest=true;
     if(pr){
       const sim=[];
       Object.entries(PM).forEach(([en,ep])=>{
         if(en.toLowerCase()===norm)return;
-        // 재직자 또는 6개월 이내 퇴직자 발음만 비교
         const isA=AL.includes(en.toLowerCase());
         const isR=RL.includes(en.toLowerCase());
-        if(!isA&&!isR)return; // 해당 없으면 스킵
+        if(!isA&&!isR)return;
         if(isSim(pr,ep)){sim.push({nick:en,pr:ep,isA,isR});}
       });
       if(sim.length>0){
         const items=sim.map(s=>{
-          const b=s.isA?`<span class="badge bd">재직중</span>`:s.isR?`<span class="badge bw">퇴사 6개월 이내</span>`:`<span class="badge bs">사용 가능</span>`;
+          const b=s.isA?`<span class="badge bd">${currentLang==='ja'?'在職中':'재직중'}</span>`:s.isR?`<span class="badge bw">${currentLang==='ja'?'退職後6ヶ月以内':'퇴사 6개월 이내'}</span>`:`<span class="badge bs">${currentLang==='ja'?'使用可':'사용 가능'}</span>`;
           return `<strong>${s.nick}</strong> (${s.pr}) ${b}`;
         }).join(' · ');
-        html+=box('hmm','발음이 비슷한 닉네임이 있어요',`비슷하게 들릴 수 있어요. 한번 더 고민해보는 건 어떨까요?<br><br>${items}`);
+        html+=box('hmm',L.simTitle,L.simDesc+'<br><br>'+items);
         canRequest=false;
       }else{
-        html+=box('ok','발음 중복도 없어요',`"${pr}" 발음과 겹치는 기존 닉네임이 없어요.`);
+        html+=box('ok',L.okPronunTitle,L.okPronunDesc(pr));
       }
     }else{
-      html+=`<p class="hint-row">💡 한국어 발음도 함께 입력하면 유사 발음까지 확인할 수 있어요.</p>`;
+      html+=`<p class="hint-row">${L.hintRow}</p>`;
       canRequest=false;
     }
   }
 
   el.innerHTML=html;el.style.display='block';
 
-  // 사용 가능 + 발음 확인까지 통과했을 때만 요청 폼 노출
   if(canRequest && pr){
     document.getElementById('reqNick').value=nick;
     document.getElementById('reqPronun').value=pr;
@@ -678,12 +689,205 @@ function doCheck(){
   }
 }
 
+
 function box(cls,title,desc){
   return `<div class="rbox ${cls}"><div class="rtitle">${title}</div><div class="rdesc">${desc}</div></div>`;
 }
 
+
+// ── i18n ──────────────────────────────
+const LANGS = {
+  ko: {
+    mainTitle: '스푼랩스에서의 새로운 여정을<br>시작할 닉네임을 입력해주세요.',
+    mainDesc: '닉네임은 사내에서 실제 이름처럼 불리며, 모든 계정의 ID가 됩니다.',
+    rule1: '💛 수평적인 문화를 위해 본명 대신 영어 닉네임을 사용해요.',
+    rule2: '🤝 이미 사용 중인 닉네임은 사용할 수 없어요. 나만의 닉네임을 찾아보세요!',
+    tabCheck: '닉네임 중복 확인',
+    tabAdmin: '관리자',
+    loading: '데이터를 불러오고 있습니다. 조금만 기다려주세요!',
+    nickLabel: '영어 닉네임',
+    nickPlaceholder: '예: Lucy',
+    pronunLabel: '한국어 발음',
+    pronunPlaceholder: '예: 루시',
+    checkBtn: '중복 확인하기 →',
+    sheetSuffix: '기준 · 실시간 연동',
+    requestTitle: '📝 채용 담당자에게 확인 요청하기',
+    reqLabel1: '1. 이름 (실명)',
+    reqLabel2: '2. 영어 닉네임',
+    reqLabel3: '3. 한국어 발음',
+    reqNamePlaceholder: '예: 홍길동',
+    reqNickPlaceholder: '예: Lucy',
+    reqPronunPlaceholder: '예: 루시',
+    reqBtn: '확인 요청하기 →',
+    reqSuccess: '요청이 전송됐어요! 채용 담당자가 확인 후 연락드릴게요 🎉',
+    reqErrName: '이름을 입력해주세요.',
+    reqErrPronun: '발음을 입력해주세요.',
+    adminTitle: '관리자 전용',
+    adminSub: 'TA 전용 페이지입니다.<br>비밀번호를 입력해주세요.',
+    adminPwBtn: '확인',
+    adminPwErr: '비밀번호가 틀렸습니다.',
+    atabRequests: '확정 요청',
+    atabPronun: '발음 관리',
+    okTitle: '사용 가능해요!',
+    okDesc: (nick) => `좋아요! <strong>${nick}</strong>은 사용할 수 있는 닉네임이에요 🎉`,
+    okPronunTitle: '발음 중복도 없어요',
+    okPronunDesc: (pr) => `"${pr}" 발음과 겹치는 기존 닉네임이 없어요.`,
+    noActiveTitle: '사용 불가 — 재직자 닉네임',
+    noActiveDesc: (nick) => `아쉽지만 <strong>${nick}</strong>은 이미 팀원이 사용 중인 닉네임이에요. 다른 닉네임을 찾아볼까요?`,
+    noResignedTitle: '사용 불가 — 퇴사 6개월 이내',
+    noResignedDesc: (nick) => `<strong>${nick}</strong>은 최근 퇴사한 팀원의 닉네임이에요. 조금 더 기다리거나 다른 닉네임을 선택해주세요.`,
+    noPendingTitle: '사용 불가 — 확인 요청 중',
+    noPendingDesc: (nick) => `<strong>${nick}</strong>은 다른 입사 예정자가 이미 요청한 닉네임이에요. 다른 닉네임을 찾아볼까요?`,
+    noApprovedTitle: '사용 불가 — 확정된 닉네임',
+    noApprovedDesc: (nick) => `<strong>${nick}</strong>은 다른 입사 예정자가 이미 확정한 닉네임이에요. 다른 닉네임을 찾아볼까요?`,
+    simTitle: '발음이 비슷한 닉네임이 있어요',
+    simDesc: '비슷하게 들릴 수 있어요. 한번 더 고민해보는 건 어떨까요?',
+    hintRow: '💡 한국어 발음도 함께 입력하면 유사 발음까지 확인할 수 있어요.',
+    pronunWrapLabel: '한국어 발음',
+    approveBtn: '✓ 최종 확정',
+    rejectBtn: '✕ 반려',
+    deleteBtn: '🗑 삭제',
+    emptyRequests: '대기 중인 요청이 없어요 ✅',
+    pronunSectionLabel: '발음 등록',
+    pronunListLabel: '등록된 발음',
+    savePronunBtn: '저장하기',
+    savePronunErr: '닉네임과 발음을 모두 입력해주세요.',
+    savePronunOk: '저장됐어요! 🎉',
+    slackMentions: '<@U07R0PZUN5N> <@U048H77TBJB> <@U09ESQB13EF>',
+  },
+  ja: {
+    mainTitle: 'SpoonLabsでの新しい旅を始める<br>ニックネームを入力してください。',
+    mainDesc: 'ニックネームは社内で本名のように呼ばれ、すべてのアカウントIDになります。',
+    rule1: '💛 フラットな文化のため、本名ではなく英語のニックネームを使用します。',
+    rule2: '🤝 すでに使用中のニックネームは使用できません。自分だけのニックネームを探してみてください！',
+    tabCheck: 'ニックネーム確認',
+    tabAdmin: '管理者',
+    loading: 'データを読み込んでいます。少々お待ちください！',
+    nickLabel: '英語ニックネーム',
+    nickPlaceholder: '例: Lucy',
+    pronunLabel: 'カタカナ読み',
+    pronunPlaceholder: '例: ルーシー',
+    checkBtn: '重複確認する →',
+    sheetSuffix: '基準 · リアルタイム連動',
+    requestTitle: '📝 採用担当者に確認リクエストを送る',
+    reqLabel1: '1. 氏名（本名）',
+    reqLabel2: '2. 英語ニックネーム',
+    reqLabel3: '3. カタカナ読み',
+    reqNamePlaceholder: '例: 山田太郎',
+    reqNickPlaceholder: '例: Lucy',
+    reqPronunPlaceholder: '例: ルーシー',
+    reqBtn: '確認リクエストを送る →',
+    reqSuccess: 'リクエストを送信しました！採用担当者が確認後にご連絡します 🎉',
+    reqErrName: '氏名を入力してください。',
+    reqErrPronun: 'カタカナ読みを入力してください。',
+    adminTitle: '管理者専用',
+    adminSub: 'TA専用ページです。<br>パスワードを入力してください。',
+    adminPwBtn: '確認',
+    adminPwErr: 'パスワードが違います。',
+    atabRequests: '確定リクエスト',
+    atabPronun: '読み管理',
+    okTitle: '使用可能です！',
+    okDesc: (nick) => `<strong>${nick}</strong>は使用できるニックネームです 🎉`,
+    okPronunTitle: '読み重複もありません',
+    okPronunDesc: (pr) => `「${pr}」の読みと重複する既存のニックネームはありません。`,
+    noActiveTitle: '使用不可 — 在職者のニックネーム',
+    noActiveDesc: (nick) => `<strong>${nick}</strong>はすでにチームメンバーが使用中のニックネームです。別のニックネームを探してみてください。`,
+    noResignedTitle: '使用不可 — 退職後6ヶ月以内',
+    noResignedDesc: (nick) => `<strong>${nick}</strong>は最近退職したメンバーのニックネームです。もう少しお待ちいただくか、別のニックネームをお選びください。`,
+    noPendingTitle: '使用不可 — 確認リクエスト中',
+    noPendingDesc: (nick) => `<strong>${nick}</strong>は他の入社予定者がすでにリクエスト中のニックネームです。`,
+    noApprovedTitle: '使用不可 — 確定済みニックネーム',
+    noApprovedDesc: (nick) => `<strong>${nick}</strong>は他の入社予定者がすでに確定したニックネームです。`,
+    simTitle: '読みが似ているニックネームがあります',
+    simDesc: '似た読みのニックネームが存在します。もう一度ご検討ください。',
+    hintRow: '💡 カタカナ読みも入力すると、読みの重複チェックもできます。',
+    pronunWrapLabel: 'カタカナ読み',
+    approveBtn: '✓ 最終確定',
+    rejectBtn: '✕ 却下',
+    deleteBtn: '🗑 削除',
+    emptyRequests: 'リクエスト待ちはありません ✅',
+    pronunSectionLabel: '読みを登録',
+    pronunListLabel: '登録済みの読み',
+    savePronunBtn: '保存する',
+    savePronunErr: 'ニックネームと読みを両方入力してください。',
+    savePronunOk: '保存しました！ 🎉',
+    slackMentions: '<@UQZEE255K> <@U0BF7L2MX53>',
+  }
+};
+
+let currentLang = 'ko';
+
+function setLang(lang, btn) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  applyLang();
+  // URL 파라미터 업데이트
+  const url = new URL(window.location.href);
+  if (lang === 'ja') { url.searchParams.set('lang','ja'); }
+  else { url.searchParams.delete('lang'); }
+  window.history.replaceState({}, '', url);
+}
+
+function applyLang() {
+  const L = LANGS[currentLang];
+  const set = (id, html) => { const el=document.getElementById(id); if(el) el.innerHTML=html; };
+  const setVal = (id, val) => { const el=document.getElementById(id); if(el) el.placeholder=val; };
+  const setTxt = (id, txt) => { const el=document.getElementById(id); if(el) el.textContent=txt; };
+
+  set('mainTitle', L.mainTitle);
+  set('mainDesc', L.mainDesc);
+  set('rule1', L.rule1);
+  set('rule2', L.rule2);
+  setTxt('tabCheck', L.tabCheck);
+  setTxt('tabAdmin', L.tabAdmin);
+  setTxt('checkBtn', L.checkBtn);
+
+  setVal('nickInput', L.nickPlaceholder);
+  setVal('pronunInput', L.pronunPlaceholder);
+  setVal('reqName', L.reqNamePlaceholder);
+  setVal('reqNick', L.reqNickPlaceholder);
+  setVal('reqPronun', L.reqPronunPlaceholder);
+
+  // labels
+  document.querySelectorAll('.fl').forEach((el, i) => {
+    if (el.previousElementSibling === null) return;
+  });
+
+  // request form title
+  const rft = document.querySelector('.request-form-title');
+  if (rft) rft.textContent = L.requestTitle;
+
+  const reqBtn = document.querySelector('.btn-request');
+  if (reqBtn) reqBtn.textContent = L.reqBtn;
+
+  set('adminTitle', L.adminTitle); // via admin-title
+  const adminTitle = document.querySelector('.admin-title');
+  if (adminTitle) adminTitle.innerHTML = L.adminTitle;
+  const adminSub = document.querySelector('.admin-sub');
+  if (adminSub) adminSub.innerHTML = L.adminSub;
+  const adminPwBtn = document.querySelector('.btn-sub');
+  if (adminPwBtn) adminPwBtn.textContent = L.adminPwBtn;
+  const adminPwErr = document.getElementById('pwError');
+  if (adminPwErr) adminPwErr.textContent = L.adminPwErr;
+}
+
+// 초기 언어 감지 (URL 파라미터)
+function initLang() {
+  const params = new URLSearchParams(window.location.search);
+  const lang = params.get('lang');
+  if (lang === 'ja') {
+    currentLang = 'ja';
+    document.querySelectorAll('.lang-btn').forEach(b => {
+      b.classList.toggle('on', b.textContent.trim() === '日本語');
+    });
+    applyLang();
+  }
+}
+
 // 토큰 있으면 처리, 없으면 일반 로드
 (async()=>{
+  initLang();
   const handled = await handleTokenAction();
   if(!handled) loadData();
 })();
