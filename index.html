@@ -648,8 +648,8 @@ function doCheck(){
   }else if(APL.includes(norm)){
     html+=box('no',L.noApprovedTitle,L.noApprovedDesc(nick));
   }else{
-    html+=box('ok',L.okTitle,L.okDesc(nick));
     canRequest=true;
+    let pronunBlocked=false;
     if(pr && currentLang === 'ko'){
       const sim=[];
       Object.entries(PM).forEach(([en,ep])=>{
@@ -664,21 +664,25 @@ function doCheck(){
         if(isSim(pr,ep)){sim.push({nick:en,pr:ep,isA,isR,isAp});}
       });
       if(sim.length>0){
+        pronunBlocked=true;
         const items=sim.map(s=>{
           const b=s.isA?`<span class="badge bd">${currentLang==='ja'?'在職中':'재직중'}</span>`
             :s.isR?`<span class="badge bw">${currentLang==='ja'?'退職後6ヶ月以内':'퇴사 6개월 이내'}</span>`
             :`<span class="badge bd">${currentLang==='ja'?'確定済み':'확정됨'}</span>`;
           return `<strong>${s.nick}</strong> (${s.pr}) ${b}`;
         }).join(' · ');
-        html+=box('hmm',L.simTitle,L.simDesc+'<br><br>'+items);
+        html+=box('no',L.simTitle,L.simDesc+'<br><br>'+items);
         canRequest=false;
       }else{
+        html+=box('ok',L.okTitle,L.okDesc(nick));
         html+=box('ok',L.okPronunTitle,L.okPronunDesc(pr));
       }
     }else if(pr && currentLang === 'ja'){
       // 일본어 버전은 발음 유사 체크 스킵 — 담당자가 직접 확인
+      html+=box('ok',L.okTitle,L.okDesc(nick));
       html+=box('ok',L.okPronunTitle,L.okPronunDesc(pr));
     }else{
+      html+=box('ok',L.okTitle,L.okDesc(nick));
       html+=`<p class="hint-row">${L.hintRow}</p>`;
       canRequest=false;
     }
@@ -749,8 +753,8 @@ const LANGS = {
     noPendingDesc: (nick) => `<strong>${nick}</strong>은 다른 입사 예정자가 이미 요청한 닉네임이에요. 다른 닉네임을 찾아볼까요?`,
     noApprovedTitle: '사용 불가 — 확정된 닉네임',
     noApprovedDesc: (nick) => `<strong>${nick}</strong>은 다른 입사 예정자가 이미 확정한 닉네임이에요. 다른 닉네임을 찾아볼까요?`,
-    simTitle: '발음이 비슷한 닉네임이 있어요',
-    simDesc: '비슷하게 들릴 수 있어요. 한번 더 고민해보는 건 어떨까요?',
+    simTitle: '사용 불가 — 발음 중복',
+    simDesc: '이미 사용 중이거나 확정된 닉네임과 발음이 같아요. 다른 발음의 닉네임을 선택해주세요.',
     hintRow: '💡 한국어 발음도 함께 입력하면 유사 발음까지 확인할 수 있어요.',
     pronunWrapLabel: '한국어 발음',
     approveBtn: '✓ 최종 확정',
@@ -807,8 +811,8 @@ const LANGS = {
     noPendingDesc: (nick) => `<strong>${nick}</strong>は他の入社予定者がすでにリクエスト中のニックネームです。`,
     noApprovedTitle: '使用不可 — 確定済みニックネーム',
     noApprovedDesc: (nick) => `<strong>${nick}</strong>は他の入社予定者がすでに確定したニックネームです。`,
-    simTitle: '読みが似ているニックネームがあります',
-    simDesc: '似た読みのニックネームが存在します。もう一度ご検討ください。',
+    simTitle: '使用不可 — 読みの重複',
+    simDesc: 'すでに使用中または確定済みのニックネームと読みが同じです。別の読みのニックネームをお選びください。',
     hintRow: '💡 カタカナ読みも入力すると、読みの重複チェックもできます。',
     pronunWrapLabel: 'カタカナ読み',
     approveBtn: '✓ 最終確定',
