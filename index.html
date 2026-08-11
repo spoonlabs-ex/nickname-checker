@@ -654,14 +654,20 @@ function doCheck(){
       const sim=[];
       Object.entries(PM).forEach(([en,ep])=>{
         if(en.toLowerCase()===norm)return;
-        const isA=AL.includes(en.toLowerCase());
-        const isR=RL.includes(en.toLowerCase());
-        if(!isA&&!isR)return;
-        if(isSim(pr,ep)){sim.push({nick:en,pr:ep,isA,isR});}
+        const en_l=en.toLowerCase();
+        const isA=AL.includes(en_l);
+        const isR=RL.includes(en_l);
+        const isAp=APL.includes(en_l);
+        // 영어 닉네임 체크와 동일한 3개 목록(재직/퇴사6개월이내/확정) 기준으로 비교
+        // APL은 백엔드에서 이미 퇴사 6개월 초과자를 제외하고 내려주므로 별도 만료 처리 불필요
+        if(!isA&&!isR&&!isAp)return;
+        if(isSim(pr,ep)){sim.push({nick:en,pr:ep,isA,isR,isAp});}
       });
       if(sim.length>0){
         const items=sim.map(s=>{
-          const b=s.isA?`<span class="badge bd">${currentLang==='ja'?'在職中':'재직중'}</span>`:s.isR?`<span class="badge bw">${currentLang==='ja'?'退職後6ヶ月以内':'퇴사 6개월 이내'}</span>`:`<span class="badge bs">${currentLang==='ja'?'使用可':'사용 가능'}</span>`;
+          const b=s.isA?`<span class="badge bd">${currentLang==='ja'?'在職中':'재직중'}</span>`
+            :s.isR?`<span class="badge bw">${currentLang==='ja'?'退職後6ヶ月以内':'퇴사 6개월 이내'}</span>`
+            :`<span class="badge bd">${currentLang==='ja'?'確定済み':'확정됨'}</span>`;
           return `<strong>${s.nick}</strong> (${s.pr}) ${b}`;
         }).join(' · ');
         html+=box('hmm',L.simTitle,L.simDesc+'<br><br>'+items);
